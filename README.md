@@ -1,12 +1,15 @@
 # 🛡️ Smart Wearable Telemetry & Fatigue Monitoring Dashboard
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7.svg)](https://smart-wearable-monitoring.onrender.com)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Framework-Flask%203.0-green.svg)](https://flask.palletsprojects.com/)
 [![Bootstrap](https://img.shields.io/badge/UI-Bootstrap%205.3-7952b3.svg)](https://getbootstrap.com/)
 [![OpenCV](https://img.shields.io/badge/Computer%20Vision-OpenCV%204.8-red.svg)](https://opencv.org/)
-[![Deployment](https://img.shields.io/badge/Deployed%20on-Render-46E3B7.svg)](https://render.com/)
+
+🌐 **Live Demo Application**: [https://smart-wearable-monitoring.onrender.com](https://smart-wearable-monitoring.onrender.com)
 
 A production-grade, industrial-themed real-time monitoring dashboard designed for smart wearable safety systems. It collects biometric temperature, relative humidity, MQ2 gas concentration levels, and real-time computer vision worker fatigue/drowsiness detection.
+
 
 ---
 
