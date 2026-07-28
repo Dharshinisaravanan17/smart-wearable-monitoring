@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Wearable Monitor | Industrial Telemetry Dashboard</title>
+
+<!-- Bootstrap 5.3 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Google Fonts & Icons -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<!-- Chart.js for real-time graphs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════
+   ROOT VARIABLES — Cyber Industrial Amber Theme
+   ═══════════════════════════════════════════ */
+:root {
+  --bg-void:      #070b10;
+  --bg-panel:     #0d1520;
+  --bg-card:      #101c2c;
+  --bg-card2:     #0a1525;
+  --border-color: #1e3a5a;
+  --border-glow:  #2a5a8a;
+
+  --amber:        #f0a500;
+  --amber-dim:    #8a5f00;
+  --amber-glow:   rgba(240,165,0,0.15);
+  --cyan:         #00d4ff;
+  --cyan-dim:     #005a70;
+  --green:        #00e676;
+  --green-dim:    #003d1f;
+  --red:          #ff3d3d;
+  --red-dim:      #4a0000;
+  --red-glow:     rgba(255,61,61,0.2);
+  --yellow:       #ffd600;
+
+  --text-primary:   #c8dff0;
+  --text-secondary: #5a7a95;
+  --text-mono:      #8ab8d8;
+
+  --font-display:  'Exo 2', sans-serif;
+  --font-mono:     'Share Tech Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════
+   BASE OVERRIDES
+   ═══════════════════════════════════════════ */
+body {
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    linear-gradient(rgba(0, 180, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 180, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER / NAVBAR
+   ═══════════════════════════════════════════ */
+.navbar-custom {
+  background: linear-gradient(90deg, #080e18 0%, #0d1a2e 50%, #080e18 100%);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 25px rgba(0,0,0,0.7);
+  z-index: 1030;
+}
+
+.logo-icon {
+  width: 40px; height: 40px;
+  border: 2px solid var(--cyan);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  box-shadow: 0 0 12px rgba(0,212,255,0.4);
+  animation: pulse-border 3s ease-in-out infinite;
+}
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 12px rgba(0,212,255,0.4); }
+  50%      { box-shadow: 0 0 24px rgba(0,212,255,0.7); }
+}
+
+.logo-text-title {
+  font-size: 1.1rem; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: #fff;
+}
+.logo-text-sub {
+  font-size: 0.65rem; color: var(--text-secondary);
+  letter-spacing: 2px; text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.sim-badge {
+  background: rgba(255,214,0,0.12);
+  border: 1px solid var(--yellow);
+  color: var(--yellow);
+  padding: 4px 10px; border-radius: 4px;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 2px;
+  font-family: var(--font-mono);
+}
+.sim-badge.visible { animation: blink 2s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.clock-time {
+  font-family: var(--font-mono);
+  font-size: 1.15rem; color: var(--cyan);
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0,212,255,0.5);
+}
+.clock-date {
+  font-size: 0.65rem; color: var(--text-secondary);
+  letter-spacing: 2px;
+}
+
+.conn-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: conn-pulse 2s ease-in-out infinite;
+}
+.conn-dot.error { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+@keyframes conn-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ═══════════════════════════════════════════
+   ALERT BANNER
+   ═══════════════════════════════════════════ */
+#alert-zone {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.4s ease, padding 0.4s ease;
+}
+#alert-zone.active {
+  max-height: 250px;
+  padding-top: 10px;
+  padding-bottom: 5px;
+}
+
+.alert-bar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; border-radius: 6px;
+  font-size: 0.85rem; font-weight: 600;
+  border-left: 4px solid transparent;
+}
+.alert-bar.danger {
+  background: rgba(255,61,61,0.15);
+  border-color: var(--red); color: #ff8080;
+  animation: flash-red 1.2s ease-in-out infinite;
+}
+@keyframes flash-red {
+  0%,100% { background: rgba(255,61,61,0.15); }
+  50%     { background: rgba(255,61,61,0.28); }
+}
+.alert-bar.warning {
+  background: rgba(255,214,0,0.1);
+  border-color: var(--yellow); color: #ffe060;
+}
+
+/* ═══════════════════════════════════════════
+   CARD METRICS & BOOTSTRAP OVERRIDES
+   ═══════════════════════════════════════════ */
+.section-label {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--text-secondary);
+  font-family: var(--font-mono);
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::before {
+  content: ''; display: inline-block; width: 16px; height: 2px;
+  background: var(--border-glow);
+}
+
+.cyber-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 18px 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  height: 100%;
+}
+.cyber-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--border-glow), transparent);
+}
+.cyber-card:hover {
+  border-color: var(--border-glow);
+  box-shadow: 0 0 25px rgba(0,100,200,0.15);
+}
+
+.sensor-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.sensor-title {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+.sensor-icon { font-size: 1.3rem; }
+
+/* SVG Gauge */
+.gauge-wrap {
+  position: relative; width: 130px; height: 75px; margin: 0 auto 10px;
+}
+.gauge-wrap svg { width: 100%; height: 100%; }
+
+.gauge-track { fill: none; stroke: var(--border-color); stroke-width: 10; stroke-linecap: round; }
+.gauge-fill  { fill: none; stroke-width: 10; stroke-linecap: round;
+               transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1), stroke 0.5s ease; }
+
+.gauge-value-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.4rem; font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  transition: color 0.5s;
+}
+.gauge-unit {
+  font-size: 0.7rem; color: var(--text-secondary); text-align: center;
+}
+
+/* Progress bars */
+.prog-row {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px;
+}
+.prog-label { font-size: 0.65rem; color: var(--text-secondary); width: 45px; font-family: var(--font-mono); }
+.prog-bar-wrap {
+  flex: 1; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden;
+}
+.prog-fill {
+  height: 100%; border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1), background 0.5s;
+}
+.prog-val {
+  font-size: 0.75rem; color: var(--text-primary); width: 40px;
+  text-align: right; font-family: var(--font-mono);
+}
+
+.big-val {
+  font-family: var(--font-mono);
+  font-size: 2.2rem; font-weight: 700; text-align: center;
+  line-height: 1; margin: 12px 0 6px;
+  transition: color 0.5s;
+}
+
+/* Fatigue status visual */
+.fatigue-ring {
+  width: 90px; height: 90px; border-radius: 50%;
+  margin: 6px auto 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem;
+  border: 3px solid var(--green);
+  box-shadow: 0 0 15px rgba(0,230,118,0.3), inset 0 0 15px rgba(0,230,118,0.05);
+  transition: border-color 0.4s, box-shadow 0.4s;
+  position: relative;
+}
+.fatigue-ring.fatigue {
+  border-color: var(--red);
+  box-shadow: 0 0 25px rgba(255,61,61,0.5), inset 0 0 15px rgba(255,61,61,0.1);
+  animation: fatigue-pulse 1s ease-in-out infinite;
+}
+@keyframes fatigue-pulse {
+  0%,100% { box-shadow: 0 0 25px rgba(255,61,61,0.5); }
+  50%     { box-shadow: 0 0 45px rgba(255,61,61,0.8); }
+}
+.fatigue-status-text {
+  text-align: center; font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  font-family: var(--font-mono);
+  color: var(--green);
+}
+.fatigue-status-text.fatigue { color: var(--red); }
+
+/* ═══════════════════════════════════════════
+   VIDEO FEED CONTAINER & WEBRTC
+   ═══════════════════════════════════════════ */
+.video-wrap {
+  position: relative; border-radius: 8px; overflow: hidden;
+  background: #000; min-height: 260px;
+  border: 1px solid var(--border-color);
+  display: flex; align-items: center; justify-content: center;
+}
+.video-wrap img, .video-wrap video {
+  width: 100%; height: 100%; max-height: 340px;
+  object-fit: cover; display: block; border-radius: 8px;
+}
+.video-overlay {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid var(--border-color);
+  padding: 3px 8px; border-radius: 4px;
+  font-size: 0.65rem; color: var(--cyan); font-family: var(--font-mono);
+  letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════
+   LOG TABLE STYLING
+   ═══════════════════════════════════════════ */
+.table-custom {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  margin-bottom: 0;
+}
+.table-custom th {
+  background: rgba(0,100,200,0.12);
+  color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 1px;
+  font-size: 0.65rem; border-bottom: 1px solid var(--border-color);
+  padding: 8px 10px;
+}
+.table-custom td {
+  padding: 6px 10px; color: var(--text-mono);
+  border-bottom: 1px solid rgba(30,58,90,0.4);
+  vertical-align: middle;
+}
+.td-fatigue-active  { color: var(--green); font-weight: 700; }
+.td-fatigue-fatigue { color: var(--red);   font-weight: 700; }
+.td-sim { color: var(--amber); font-size: 0.65rem; }
+
+/* ═══════════════════════════════════════════
+   SCROLLBARS
+   ═══════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+</style>
+</head>
+
+<body>
+
+<!-- ══════════════════════════════════════════
+     NAVBAR / HEADER
+══════════════════════════════════════════ -->
+<nav class="navbar navbar-custom py-2">
+  <div class="container-fluid px-3 px-lg-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="logo-icon"><i class="bi bi-shield-check text-info"></i></div>
+      <div>
+        <div class="logo-text-title">Smart Wearable Monitor</div>
+        <div class="logo-text-sub">Real-Time Biometric &amp; Environmental Dashboard</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-3">
+      <span class="sim-badge d-none d-sm-inline-block" id="sim-badge">⚡ SIM MODE</span>
+      
+      <!-- Video Source Switcher for Cloud/WebRTC compatibility -->
+      <div class="dropdown d-none d-md-block">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-1 px-2 font-monospace text-info" style="font-size: 0.75rem;" type="button" data-bs-toggle="dropdown" id="camSourceBtn">
+          <i class="bi bi-camera-video me-1"></i> <span id="camSourceText">Server Stream</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" style="font-size: 0.8rem;">
+          <li><a class="dropdown-item active" href="#" onclick="switchCameraMode('server')"><i class="bi bi-cpu me-2"></i>Server MJPEG Feed</a></li>
+          <li><a class="dropdown-item" href="#" onclick="switchCameraMode('webrtc')"><i class="bi bi-webcam me-2"></i>Browser Webcam (WebRTC)</a></li>
+        </ul>
+      </div>
+
+      <div class="text-end d-none d-sm-block">
+        <div class="clock-time" id="clock-time">--:--:--</div>
+        <div class="clock-date" id="clock-date">--- -- ----</div>
+      </div>
+      
+      <div class="conn-dot" id="conn-dot" title="Server Connection Status"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     ALERT BANNER ZONE
+══════════════════════════════════════════ -->
+<div class="container-fluid px-3 px-lg-4">
+  <div id="alert-zone"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN CONTENT GRID
+══════════════════════════════════════════ -->
+<main class="container-fluid px-3 px-lg-4 py-3">
+
+  <!-- LIVE SENSOR CARDS ROW -->
+  <div class="mb-4">
+    <div class="section-label">Live Telemetry Metrics</div>
+    <div class="row g-3">
+
+      <!-- TEMPERATURE CARD -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="cyber-card" id="card-temp">
+          <div class="sensor-card-header">
+            <span class="sensor-title">Temperature</span>
+            <span class="sensor-icon text-info"><i class="bi bi-thermometer-half"></i></span>
+          </div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 130 75" xmlns="http://www.w3.org/2000/svg">
+              <path class="gauge-track" d="M 15 70 A 50 50 0 1 1 115 70" />
+              <path class="gauge-fill" id="temp-arc" d="M 15 70 A 50 50 0 1 1 115 70" stroke="#00d4ff" stroke-dasharray="157" stroke-dashoffset="157" />
+            </svg>
+            <div class="gauge-value-label" id="temp-val">--</div>
+          </div>
+          <div class="gauge-unit">°C &nbsp;|&nbsp; Range: 30 – 42°C</div>
+          <div class="prog-row">
+            <span class="prog-label">NORMAL</span>
+            <div class="prog-bar-wrap">
+              <div class="prog-fill" id="temp-prog" style="width:0%; background: var(--cyan)"></div>
+            </div>
+            <span class="prog-val" id="temp-prog-pct">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HUMIDITY CARD -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="cyber-card" id="card-hum">
+          <div class="sensor-card-header">
+            <span class="sensor-title">Humidity</span>
+            <span class="sensor-icon text-primary"><i class="bi bi-droplet-half"></i></span>
+          </div>
+          <div class="big-val" id="hum-val" style="color:var(--cyan)">--</div>
+          <div class="gauge-unit">% RH &nbsp;|&nbsp; Range: 30 – 95%</div>
+          <div class="mt-3">
+            <div class="prog-bar-wrap" style="height:10px;">
+              <div class="prog-fill" id="hum-prog" style="width:0%; background: linear-gradient(90deg,var(--cyan-dim),var(--cyan));"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-1" style="font-size:0.65rem; color:var(--text-secondary); font-family:var(--font-mono)">
+              <span>30%</span><span>Comfortable</span><span>95%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAS CARD (MQ2) -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="cyber-card" id="card-gas">
+          <div class="sensor-card-header">
+            <span class="sensor-title">Gas Level (MQ2)</span>
+            <span class="sensor-icon text-warning"><i class="bi bi-fuel-pump"></i></span>
+          </div>
+          <div class="big-val" id="gas-val" style="color:var(--amber)">--</div>
+          <div class="gauge-unit">ppm &nbsp;|&nbsp; Air Quality Index</div>
+          <div class="mt-3">
+            <div class="prog-bar-wrap" style="height:10px;">
+              <div class="prog-fill" id="gas-prog" style="width:0%; background: linear-gradient(90deg,var(--green),var(--amber),var(--red));"></div>
+            </div>
+            <div id="gas-level-text" class="text-center mt-1" style="font-size:0.7rem; color:var(--green); font-family:var(--font-mono); font-weight:700;">SAFE</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FATIGUE STATUS CARD -->
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="cyber-card" id="card-fatigue">
+          <div class="sensor-card-header">
+            <span class="sensor-title">Fatigue Status</span>
+            <span class="sensor-icon text-success"><i class="bi bi-eye"></i></span>
+          </div>
+          <div class="fatigue-ring" id="fatigue-ring"><i class="bi bi-emoji-smile"></i></div>
+          <div class="fatigue-status-text" id="fatigue-text">ACTIVE</div>
+          <div class="text-center mt-1" style="font-size:0.65rem; color:var(--text-secondary); font-family:var(--font-mono)">OpenCV Real-Time Tracking</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MIDDLE ROW: HISTORICAL TREND CHART & VIDEO FEED -->
+  <div class="row g-3 mb-4">
+    <!-- HISTORICAL CHART -->
+    <div class="col-12 col-lg-7">
+      <div class="cyber-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="section-label mb-0">Telemetry Real-Time History</div>
+          <span class="badge bg-outline-info text-info border border-info font-monospace" style="font-size:0.65rem">LIVE CHART</span>
+        </div>
+        <div style="height: 260px; position: relative;">
+          <canvas id="telemetryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE CAMERA FEED -->
+    <div class="col-12 col-lg-5">
+      <div class="cyber-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="section-label mb-0">Live Fatigue Detection Feed</div>
+          <button class="btn btn-sm btn-outline-info py-0 px-2 font-monospace" style="font-size:0.65rem" onclick="toggleWebRTC()">
+            <i class="bi bi-arrow-repeat me-1"></i> <span id="toggleCamLabel">Browser Cam</span>
+          </button>
+        </div>
+        <div class="video-wrap" id="videoContainer">
+          <!-- Server MJPEG Stream -->
+          <img id="serverVideoFeed" src="/video_feed" alt="Live webcam fatigue detection feed">
+          <!-- WebRTC Client Video Feed (hidden by default) -->
+          <video id="webrtcVideoFeed" autoplay playsinline muted style="display:none;"></video>
+          <div class="video-overlay" id="feedOverlay">⬤ LIVE STREAM</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW: DATA LOGS TABLE -->
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="cyber-card p-3">
+        <div class="section-label mb-2">Logged Sensor Telemetry (CSV Storage)</div>
+        <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+          <table class="table table-custom table-dark table-hover">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Temperature (°C)</th>
+                <th>Humidity (%)</th>
+                <th>Gas (ppm)</th>
+                <th>Fatigue Status</th>
+                <th>Data Source</th>
+              </tr>
+            </thead>
+            <tbody id="log-tbody">
+              <tr><td colspan="6" class="text-center text-muted py-3">Loading telemetry logs…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Bootstrap 5.3 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.bundle.min.js"></script>
+
+<script>
+'use strict';
+
+/* ── SVG Gauge Helper ───────────────────────────────────────────── */
+const ARC_LEN = 157;
+function setGaugeArc(arcEl, valueEl, val, min, max) {
+  const pct = Math.max(0, Math.min(1, (val - min) / (max - min)));
+  const offset = ARC_LEN - pct * ARC_LEN;
+  arcEl.style.strokeDashoffset = offset;
+  valueEl.textContent = Number.isFinite(val) ? val.toFixed(1) : '--';
+
+  let color;
+  if (pct < 0.5)      color = `hsl(${190 + pct * 60},100%,55%)`;
+  else if (pct < 0.8) color = `hsl(${190 - (pct-0.5)*200},100%,55%)`;
+  else                color = '#ff3d3d';
+  arcEl.style.stroke = color;
+  valueEl.style.color = color;
+}
+
+/* ── DOM Element References ─────────────────────────────────────── */
+const el = id => document.getElementById(id);
+
+const tempArc      = el('temp-arc');
+const tempVal      = el('temp-val');
+const tempProg     = el('temp-prog');
+const tempProgPct  = el('temp-prog-pct');
+
+const humVal       = el('hum-val');
+const humProg      = el('hum-prog');
+
+const gasVal       = el('gas-val');
+const gasProg      = el('gas-prog');
+const gasLvlText   = el('gas-level-text');
+
+const fatigueRing  = el('fatigue-ring');
+const fatigueText  = el('fatigue-text');
+
+const alertZone    = el('alert-zone');
+const simBadge     = el('sim-badge');
+const connDot      = el('conn-dot');
+const clockTime    = el('clock-time');
+const clockDate    = el('clock-date');
+const logTbody     = el('log-tbody');
+
+/* ── Chart.js Setup for Telemetry Trends ────────────────────────── */
+const ctx = el('telemetryChart').getContext('2d');
+const maxDataPoints = 15;
+
+const telemetryChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: 'Temperature (°C)',
+        data: [],
+        borderColor: '#00d4ff',
+        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true,
+        yAxisID: 'yTemp'
+      },
+      {
+        label: 'Gas Level (ppm)',
+        data: [],
+        borderColor: '#f0a500',
+        backgroundColor: 'rgba(240, 165, 0, 0.1)',
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true,
+        yAxisID: 'yGas'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: '#8ab8d8', font: { family: 'Share Tech Mono', size: 11 } }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(30, 58, 90, 0.4)' },
+        ticks: { color: '#5a7a95', font: { family: 'Share Tech Mono', size: 10 } }
+      },
+      yTemp: {
+        type: 'linear',
+        position: 'left',
+        min: 25, max: 45,
+        grid: { color: 'rgba(30, 58, 90, 0.4)' },
+        ticks: { color: '#00d4ff', font: { family: 'Share Tech Mono', size: 10 } },
+        title: { display: true, text: 'Temp (°C)', color: '#00d4ff', font: { size: 10 } }
+      },
+      yGas: {
+        type: 'linear',
+        position: 'right',
+        min: 0, max: 700,
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#f0a500', font: { family: 'Share Tech Mono', size: 10 } },
+        title: { display: true, text: 'Gas (ppm)', color: '#f0a500', font: { size: 10 } }
+      }
+    }
+  }
+});
+
+function addChartData(timeStr, temp, gas) {
+  if (telemetryChart.data.labels.length >= maxDataPoints) {
+    telemetryChart.data.labels.shift();
+    telemetryChart.data.datasets[0].data.shift();
+    telemetryChart.data.datasets[1].data.shift();
+  }
+  telemetryChart.data.labels.push(timeStr);
+  telemetryChart.data.datasets[0].data.push(temp);
+  telemetryChart.data.datasets[1].data.push(gas);
+  telemetryChart.update('quiet');
+}
+
+/* ── Telemetry Update Helpers ───────────────────────────────────── */
+function updateTemperature(temp) {
+  setGaugeArc(tempArc, tempVal, temp, 30, 42);
+  const pct = Math.max(0, Math.min(100, ((temp - 30) / 12) * 100)).toFixed(0);
+  tempProg.style.width = pct + '%';
+  tempProgPct.textContent = pct + '%';
+
+  const card = el('card-temp');
+  if (temp >= 38)        card.style.boxShadow = '0 0 20px rgba(255,61,61,0.3)';
+  else if (temp >= 36.5) card.style.boxShadow = '0 0 20px rgba(255,214,0,0.15)';
+  else                   card.style.boxShadow = '';
+}
+
+function updateHumidity(hum) {
+  humVal.textContent = hum.toFixed(1);
+  const pct = Math.max(0, Math.min(100, ((hum - 30) / 65) * 100));
+  humProg.style.width = pct + '%';
+
+  if (hum > 80)      humVal.style.color = 'var(--red)';
+  else if (hum > 65) humVal.style.color = 'var(--amber)';
+  else               humVal.style.color = 'var(--cyan)';
+}
+
+function updateGas(gas) {
+  gasVal.textContent = gas;
+  const pct = Math.max(0, Math.min(100, (gas / 700) * 100));
+  gasProg.style.width = pct + '%';
+
+  if (gas >= 500) {
+    gasVal.style.color = 'var(--red)';
+    gasLvlText.textContent = 'DANGER';
+    gasLvlText.style.color = 'var(--red)';
+    el('card-gas').style.boxShadow = '0 0 20px rgba(255,61,61,0.3)';
+  } else if (gas >= 350) {
+    gasVal.style.color = 'var(--amber)';
+    gasLvlText.textContent = 'CAUTION';
+    gasLvlText.style.color = 'var(--amber)';
+    el('card-gas').style.boxShadow = '0 0 20px rgba(240,165,0,0.2)';
+  } else {
+    gasVal.style.color = 'var(--green)';
+    gasLvlText.textContent = 'SAFE';
+    gasLvlText.style.color = 'var(--green)';
+    el('card-gas').style.boxShadow = '';
+  }
+}
+
+function updateFatigue(status) {
+  const isFatigue = status === 'FATIGUE';
+  fatigueRing.innerHTML = isFatigue ? '<i class="bi bi-emoji-expressionless text-danger"></i>' : '<i class="bi bi-emoji-smile text-success"></i>';
+  fatigueRing.className = 'fatigue-ring' + (isFatigue ? ' fatigue' : '');
+  fatigueText.textContent = status;
+  fatigueText.className = 'fatigue-status-text' + (isFatigue ? ' fatigue' : '');
+  el('card-fatigue').style.boxShadow = isFatigue ? '0 0 25px rgba(255,61,61,0.3)' : '';
+}
+
+function updateAlerts(alerts) {
+  if (!alerts || alerts.length === 0) {
+    alertZone.innerHTML = '';
+    alertZone.classList.remove('active');
+    return;
+  }
+  alertZone.classList.add('active');
+  alertZone.innerHTML = alerts.map(a => `
+    <div class="alert-bar ${a.level} mb-1">
+      <i class="bi ${a.level === 'danger' ? 'bi-exclamation-triangle-fill text-danger' : 'bi-exclamation-circle-fill text-warning'}"></i>
+      <span>${a.msg}</span>
+    </div>
+  `).join('');
+}
+
+let _lastLogTime = '';
+function updateLogs() {
+  fetch('/api/logs')
+    .then(r => r.json())
+    .then(rows => {
+      if (!rows || !rows.length) return;
+      const latest = rows[rows.length - 1];
+      if (latest.Timestamp === _lastLogTime) return;
+      _lastLogTime = latest.Timestamp;
+
+      logTbody.innerHTML = [...rows].reverse().map((r, i) => {
+        const fs = (r.Fatigue_Status || '').toUpperCase();
+        const fClass = fs === 'FATIGUE' ? 'td-fatigue-fatigue' : 'td-fatigue-active';
+        const sim = r.Simulated === 'True' ? '🟡 SIM' : '🟢 HW';
+        return `<tr>
+          <td>${(r.Timestamp || '').split(' ')[1] || r.Timestamp}</td>
+          <td>${parseFloat(r.Temperature_C || 0).toFixed(1)}</td>
+          <td>${parseFloat(r.Humidity_pct || 0).toFixed(1)}</td>
+          <td>${r.Gas_ppm}</td>
+          <td class="${fClass}">${fs}</td>
+          <td class="td-sim">${sim}</td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(() => {});
+}
+
+/* ── Camera Source Switcher (Server MJPEG vs WebRTC Browser Cam) ─── */
+let currentMode = 'server';
+let webRtcStream = null;
+
+function switchCameraMode(mode) {
+  const serverImg = el('serverVideoFeed');
+  const webrtcVideo = el('webrtcVideoFeed');
+  const overlay = el('feedOverlay');
+  const sourceText = el('camSourceText');
+  const toggleLabel = el('toggleCamLabel');
+
+  if (mode === 'webrtc') {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          webRtcStream = stream;
+          webrtcVideo.srcObject = stream;
+          webrtcVideo.style.display = 'block';
+          serverImg.style.display = 'none';
+          overlay.textContent = '⬤ BROWSER WEBCAM';
+          sourceText.textContent = 'Browser Cam';
+          toggleLabel.textContent = 'Server Stream';
+          currentMode = 'webrtc';
+        })
+        .catch(err => {
+          alert('Could not access browser webcam: ' + err.message);
+          switchCameraMode('server');
+        });
+    } else {
+      alert('Browser does not support WebRTC camera access.');
+    }
+  } else {
+    if (webRtcStream) {
+      webRtcStream.getTracks().forEach(t => t.stop());
+      webRtcStream = null;
+    }
+    webrtcVideo.style.display = 'none';
+    serverImg.style.display = 'block';
+    overlay.textContent = '⬤ SERVER STREAM';
+    sourceText.textContent = 'Server Stream';
+    toggleLabel.textContent = 'Browser Cam';
+    currentMode = 'server';
+  }
+}
+
+function toggleWebRTC() {
+  switchCameraMode(currentMode === 'server' ? 'webrtc' : 'server');
+}
+
+/* ── Main Telemetry Polling Loop ────────────────────────────────── */
+let _failCount = 0;
+async function pollTelemetry() {
+  try {
+    const res = await fetch('/api/data');
+    const data = await res.json();
+
+    updateTemperature(data.temperature);
+    updateHumidity(data.humidity);
+    updateGas(data.gas);
+    updateFatigue(data.fatigue);
+    updateAlerts(data.alerts);
+    addChartData(data.timestamp, data.temperature, data.gas);
+
+    simBadge.classList.toggle('visible', data.simulated);
+    simBadge.classList.toggle('d-none', !data.simulated);
+    connDot.classList.remove('error');
+    _failCount = 0;
+  } catch (err) {
+    _failCount++;
+    if (_failCount >= 3) connDot.classList.add('error');
+  }
+}
+
+/* ── Clock Update ───────────────────────────────────────────────── */
+function tickClock() {
+  const now = new Date();
+  clockTime.textContent = now.toLocaleTimeString('en-GB');
+  clockDate.textContent = now.toLocaleDateString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  });
+}
+
+/* ── Boot Sequence ──────────────────────────────────────────────── */
+pollTelemetry();
+setInterval(pollTelemetry, 2000);
+setInterval(updateLogs, 5000);
+updateLogs();
+tickClock();
+setInterval(tickClock, 1000);
+</script>
+</body>
+</html>
+
